@@ -1,0 +1,54 @@
+# ── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+ENV/
+
+# ── Environment / secrets ────────────────────────────────────────────────────
+.env
+!.env.example
+
+# ── Node / SvelteKit ─────────────────────────────────────────────────────────
+node_modules/
+frontend/.svelte-kit/
+frontend/build/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# ── Docker ───────────────────────────────────────────────────────────────────
+# (docker-compose.yml is committed; local override is not)
+docker-compose.override.yml
+
+# ── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editors ──────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Alembic ──────────────────────────────────────────────────────────────────
+# migration versions are committed; generated env is not
+backend/alembic/versions/*.pyc
+
+# ── Misc ─────────────────────────────────────────────────────────────────────
+*.log
+*.bak
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+.coverage
