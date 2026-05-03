@@ -21,7 +21,7 @@ class JoinRoomPayload(BaseModel):
 
 
 class IncomingMessage(BaseModel):
-    type: Literal["pick_hero", "ban_hero", "join_room"]
+    type: Literal["pick_hero", "ban_hero", "join_room", "leave_room", "end_room"]
     payload: dict[str, Any] = {}
 
 

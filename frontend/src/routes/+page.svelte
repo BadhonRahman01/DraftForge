@@ -9,9 +9,10 @@
 		creating = true;
 		error = '';
 		try {
-			const res = await fetch('http://localhost:8000/api/rooms', { method: 'POST' });
+			const res = await fetch('/api/rooms', { method: 'POST' });
 			if (!res.ok) throw new Error(`Server error: ${res.status}`);
-			const { room_id } = await res.json();
+			const { room_id, host_token } = await res.json();
+			sessionStorage.setItem(`draftforge_host_${room_id}`, host_token);
 			await goto(`/room/${room_id}`);
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to create room';

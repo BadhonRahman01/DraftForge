@@ -15,8 +15,17 @@ export interface DraftState {
 	radiantBans: Hero[];
 	direBans: Hero[];
 	availableHeroes: Hero[];
-	phase: string;
-	turn: string;
+	// CM sequence state
+	phase: string;          // "Ban Phase 1" | "Pick Phase 1" | … | "Draft Complete"
+	turn: string;           // "radiant" | "dire" | ""
+	action: string;         // "pick" | "ban" | ""
+	seqIndex: number;
+	totalSteps: number;
+	draftComplete: boolean;
+	// Room meta
+	isHost: boolean;
+	roomClosed: boolean;
+	roomClosedReason: string;
 }
 
 function createDraftStore() {
@@ -27,8 +36,15 @@ function createDraftStore() {
 		radiantBans: [],
 		direBans: [],
 		availableHeroes: [],
-		phase: 'draft',
-		turn: 'radiant'
+		phase: '',
+		turn: '',
+		action: '',
+		seqIndex: 0,
+		totalSteps: 22,
+		draftComplete: false,
+		isHost: false,
+		roomClosed: false,
+		roomClosedReason: ''
 	};
 
 	const { subscribe, set, update } = writable<DraftState>(initial);
@@ -48,7 +64,6 @@ function createDraftStore() {
 			update((s) => ({ ...s, roomId }));
 		},
 
-		/** Called when the server sends the full room state (on join / reconnect) */
 		applyRoomState(
 			serverState: {
 				radiant_picks: number[];
@@ -57,6 +72,11 @@ function createDraftStore() {
 				dire_bans: number[];
 				phase: string;
 				turn: string;
+				action?: string;
+				seq_index?: number;
+				total_steps?: number;
+				draft_complete?: boolean;
+				is_host?: boolean;
 			},
 			allHeroes: Hero[]
 		) {
@@ -75,7 +95,12 @@ function createDraftStore() {
 				direBans: serverState.dire_bans.map((id) => heroById(id, allHeroes)).filter(Boolean) as Hero[],
 				availableHeroes: allHeroes.filter((h) => !takenIds.has(h.id)),
 				phase: serverState.phase,
-				turn: serverState.turn
+				turn: serverState.turn,
+				action: serverState.action ?? s.action,
+				seqIndex: serverState.seq_index ?? s.seqIndex,
+				totalSteps: serverState.total_steps ?? s.totalSteps,
+				draftComplete: serverState.draft_complete ?? s.draftComplete,
+				isHost: serverState.is_host ?? s.isHost
 			}));
 		},
 
@@ -101,6 +126,22 @@ function createDraftStore() {
 				}
 				return { ...s, direBans: [...s.direBans, hero], availableHeroes: available };
 			});
+		},
+
+		/** Sync full sequence state from a hero_picked / hero_banned broadcast */
+		applySequenceState(state: Record<string, unknown>) {
+			update((s) => ({
+				...s,
+				phase: (state.phase as string) ?? s.phase,
+				turn: (state.turn as string) ?? s.turn,
+				action: (state.action as string) ?? s.action,
+				seqIndex: (state.seq_index as number) ?? s.seqIndex,
+				draftComplete: (state.draft_complete as boolean) ?? s.draftComplete,
+			}));
+		},
+
+		closeRoom(reason: string) {
+			update((s) => ({ ...s, roomClosed: true, roomClosedReason: reason }));
 		},
 
 		reset() {

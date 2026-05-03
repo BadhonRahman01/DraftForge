@@ -15,8 +15,20 @@ _cache: dict[str, Any] = {"data": None, "fetched_at": 0.0}
 CACHE_TTL = 3600  # 1 hour
 
 
+def _cdn(path: str, short_name: str, kind: str) -> str:
+    """Build a CDN URL that works regardless of whether the API returns a relative or absolute path."""
+    if path and path.startswith("http"):
+        return path
+    if path and path.startswith("/"):
+        return f"{CDN_PREFIX}{path}"
+    # Fallback: construct from the hero's internal name, which is always stable
+    if kind == "icon":
+        return f"{CDN_PREFIX}/apps/dota2/images/dota_react/heroes/icons/{short_name}.png"
+    return f"{CDN_PREFIX}/apps/dota2/images/dota_react/heroes/{short_name}.png"
+
+
 async def _fetch_heroes() -> list[dict[str, Any]]:
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with httpx.AsyncClient(timeout=20.0) as client:
         resp = await client.get(OPENDOTA_HEROES_URL)
         resp.raise_for_status()
         raw: list[dict[str, Any]] = resp.json()
@@ -24,10 +36,11 @@ async def _fetch_heroes() -> list[dict[str, Any]]:
     return [
         {
             "id": h["id"],
+            "name": h["name"],
             "localized_name": h["localized_name"],
             "primary_attr": h["primary_attr"],
-            "img": f"{CDN_PREFIX}{h['img']}",
-            "icon": f"{CDN_PREFIX}{h['icon']}",
+            "img": _cdn(h.get("img", ""), h["name"].replace("npc_dota_hero_", ""), "img"),
+            "icon": _cdn(h.get("icon", ""), h["name"].replace("npc_dota_hero_", ""), "icon"),
         }
         for h in raw
     ]
@@ -40,10 +53,9 @@ async def list_heroes() -> list[dict[str, Any]]:
         try:
             _cache["data"] = await _fetch_heroes()
             _cache["fetched_at"] = now
-        except httpx.HTTPError as exc:
+        except Exception as exc:
             if _cache["data"] is not None:
-                # Serve stale data rather than fail
                 return _cache["data"]
-            raise HTTPException(status_code=502, detail=f"OpenDota API error: {exc}") from exc
+            raise HTTPException(status_code=502, detail=f"Failed to fetch heroes: {exc}") from exc
 
     return _cache["data"]

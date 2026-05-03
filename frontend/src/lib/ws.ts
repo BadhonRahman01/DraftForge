@@ -11,6 +11,7 @@ export const connectionStatus: Readable<ConnectionStatus> = { subscribe: _status
 
 let socket: WebSocket | null = null;
 let currentRoomId: string | null = null;
+let currentToken = '';
 let retryCount = 0;
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
 let messageHandler: MessageCallback | null = null;
@@ -26,19 +27,22 @@ function scheduleReconnect(): void {
 	console.log(`[WS] Reconnecting in ${delay}ms (attempt ${retryCount + 1})`);
 	retryTimer = setTimeout(() => {
 		retryCount++;
-		connect(currentRoomId!);
+		connect(currentRoomId!, currentToken);
 	}, delay);
 }
 
-export function connect(roomId: string): void {
+export function connect(roomId: string, token = ''): void {
 	intentionalClose = false;
 	currentRoomId = roomId;
+	currentToken = token;
 
 	if (socket && socket.readyState !== WebSocket.CLOSED) {
 		socket.close();
 	}
 
-	const url = `ws://localhost:8000/ws/${roomId}`;
+	const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+	const tokenPart = token ? `?token=${encodeURIComponent(token)}` : '';
+	const url = `${wsProtocol}://${window.location.host}/ws/${roomId}${tokenPart}`;
 	console.log(`[WS] Connecting to ${url}`);
 	_status.set('connecting');
 	socket = new WebSocket(url);
